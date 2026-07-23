@@ -1,3 +1,4 @@
+using System.Configuration;
 using Microsoft.Extensions.Configuration;
 
 namespace Clayzor.Lib.Web.Settings;
@@ -25,6 +26,13 @@ public class ClayAppSettings
 
     /// <summary>Таймаут команд БД в секундах.</summary>
     public int CommandTimeout { get; set; } = 30;
+
+    /// <summary>
+    /// URL страницы пользовательской документации ClayGrid.
+    /// Значение читается из секции <c>appSettings</c> файла <c>web.config</c>, ключ <c>URI_help_clayGrid</c>.
+    /// Если ключ отсутствует или пуст — кнопка справки на тулбаре грида не отображается.
+    /// </summary>
+    public string? UriHelpClayGrid { get; set; }
 }
 
 /// <summary>
@@ -49,8 +57,9 @@ public static class WebConfigExtensions
 
     /// <summary>
     /// Связывает секцию "ClayApp" в <see cref="ClayAppSettings"/>.
-    /// Если ConnectionString не задана в секции, используется ConnectionStrings:DefaultConnection.
-    /// Если DictionaryConnectionString не задана, используется ConnectionStrings:DictionaryConnection.
+    /// Если ConnectionString не задана в секции, читается из web.config через
+    /// <see cref="ConfigurationManager.ConnectionStrings"/>.
+    /// Если DictionaryConnectionString не задана — аналогично.
     /// </summary>
     /// <param name="configuration">Корневая конфигурация приложения.</param>
     /// <returns>Заполненный объект <see cref="ClayAppSettings"/>.</returns>
@@ -60,10 +69,50 @@ public static class WebConfigExtensions
         configuration.GetSection("ClayApp").Bind(settings);
 
         if (string.IsNullOrEmpty(settings.ConnectionString))
-            settings.ConnectionString = configuration.GetConnectionString("DefaultConnection") ?? string.Empty;
+        {
+            var csName = configuration["ClayGrid:Dynamic:ConnectionStringName"] ?? "DefaultConnection";
+            settings.ConnectionString = ReadConnectionStringFromWebConfig(csName) ?? string.Empty;
+        }
         if (string.IsNullOrEmpty(settings.DictionaryConnectionString))
-            settings.DictionaryConnectionString = configuration.GetConnectionString("DictionaryConnection");
+            settings.DictionaryConnectionString = ReadConnectionStringFromWebConfig("DictionaryConnection");
+
+        if (string.IsNullOrEmpty(settings.UriHelpClayGrid))
+            settings.UriHelpClayGrid = ReadAppSettingFromWebConfig("URI_help_clayGrid");
 
         return settings;
+    }
+
+    /// <summary>
+    /// Читает строку подключения с указанным именем из <c>web.config</c>
+    /// через <see cref="ConfigurationManager.ConnectionStrings"/>.
+    /// </summary>
+    /// <param name="name">Имя строки подключения (атрибут name в секции connectionStrings).</param>
+    /// <returns>Строка подключения или null, если файл отсутствует или имя не найдено.</returns>
+    private static string? ReadConnectionStringFromWebConfig(string name)
+    {
+        var webConfigPath = Path.Combine(Directory.GetCurrentDirectory(), "web.config");
+        if (!File.Exists(webConfigPath))
+            return null;
+
+        var map = new ExeConfigurationFileMap { ExeConfigFilename = webConfigPath };
+        var config = System.Configuration.ConfigurationManager.OpenMappedExeConfiguration(map, ConfigurationUserLevel.None);
+        return config.ConnectionStrings.ConnectionStrings[name]?.ConnectionString;
+    }
+
+    /// <summary>
+    /// Читает значение из секции <c>appSettings</c> файла <c>web.config</c>
+    /// через <see cref="ConfigurationManager.AppSettings"/>.
+    /// </summary>
+    /// <param name="key">Ключ (атрибут key в секции appSettings).</param>
+    /// <returns>Значение или null, если файл отсутствует или ключ не найден.</returns>
+    private static string? ReadAppSettingFromWebConfig(string key)
+    {
+        var webConfigPath = Path.Combine(Directory.GetCurrentDirectory(), "web.config");
+        if (!File.Exists(webConfigPath))
+            return null;
+
+        var map = new ExeConfigurationFileMap { ExeConfigFilename = webConfigPath };
+        var config = System.Configuration.ConfigurationManager.OpenMappedExeConfiguration(map, ConfigurationUserLevel.None);
+        return config.AppSettings.Settings[key]?.Value;
     }
 }
