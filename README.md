@@ -52,26 +52,31 @@ Clayzor.Lib.Web.Settings/
 
 ## ClayAppSettings
 
-Модель настроек связывается из секции `"ClayApp"` конфигурации.
+Модель настроек заполняется из конфигурации явным чтением ключей (см. «Загрузка конфигурации»).
 
 | Свойство | Тип | По умолчанию | Назначение |
 | --- | --- | --- | --- |
 | `ConnectionString` | `string` | `""` | Строка подключения к основной БД. |
 | `DictionaryConnectionString` | `string?` | `null` | Строка подключения к БД справочников (опционально). |
-| `ApplicationName` | `string` | `"Clayzor"` | Наименование приложения. |
-| `LdapPath` | `string?` | `null` | Путь к LDAP для аутентификации (опционально). |
-| `DefaultPageSize` | `int` | `50` | Размер страницы по умолчанию для таблиц данных. |
-| `CommandTimeout` | `int` | `30` | Таймаут команд БД в секундах. |
+| `ApplicationName` | `string` | `"Clayzor"` | Наименование приложения. Читается из ключа `AppName`. |
+| `LdapPath` | `string?` | `null` | Путь к LDAP для аутентификации (опционально). Читается из `ClayApp:LdapPath`. |
+| `DefaultPageSize` | `int` | `50` | Размер страницы по умолчанию для таблиц данных. Читается из `ClayGrid:DefaultPageSize`. |
+| `CommandTimeout` | `int` | `30` | Таймаут команд БД в секундах. Читается из `Sql:CommandTimeout`. |
+| `UriHelpClayGrid` | `string?` | `null` | URL справки ClayGrid. Читается из `URI_help_clayGrid` в `web.config`. |
 
 Пример секции в `appsettings.json`:
 
 ```json
 {
+  "AppName": "Clayzor",
+  "ClayGrid": {
+    "DefaultPageSize": 50
+  },
   "ClayApp": {
-    "ApplicationName": "Clayzor",
-    "DefaultPageSize": 50,
-    "CommandTimeout": 30,
     "LdapPath": "LDAP://example.local"
+  },
+  "Sql": {
+    "CommandTimeout": 30
   },
   "ConnectionStrings": {
     "DefaultConnection": "Server=...;Database=...;",
@@ -87,7 +92,7 @@ Clayzor.Lib.Web.Settings/
 | Метод | Назначение |
 | --- | --- |
 | `IConfigurationBuilder.AddWebConfig(path?)` | Добавляет `web.config` как дополнительный XML-источник конфигурации (если файл существует, `optional`, с `reloadOnChange`). По умолчанию берётся `web.config` из текущей директории. Вызывается **до** `BindClaySettings()`. |
-| `IConfiguration.BindClaySettings()` | Связывает секцию `"ClayApp"` в новый `ClayAppSettings` и возвращает его. Если `ConnectionString` в секции не задана — берёт `ConnectionStrings:DefaultConnection`; если не задана `DictionaryConnectionString` — берёт `ConnectionStrings:DictionaryConnection`. |
+| `IConfiguration.BindClaySettings()` | Создаёт новый `ClayAppSettings` и заполняет его явным чтением ключей: `AppName`, `ClayGrid:DefaultPageSize`, `Sql:CommandTimeout`, `ClayApp:LdapPath`. Если `ConnectionString` не задана — читает имя из `ClayGrid:Dynamic:ConnectionStringName` (по умолчанию `"DefaultConnection"`) и получает строку из `web.config` через `ConfigurationManager.ConnectionStrings`. `UriHelpClayGrid` — из `web.config` через `ConfigurationManager.AppSettings`. |
 
 Пример использования (иллюстративно; детали регистрации зависят от приложения):
 
@@ -104,7 +109,7 @@ builder.Services.AddSingleton(claySettings);
 
 ## Приоритет строк подключения
 
-Согласно `AGENTS.md`, приоритет источника строки подключения — **`web.config` → `appsettings.json`**: значения из `web.config`, добавленного через `AddWebConfig`, перекрывают значения из `appsettings.json`. Внутри `BindClaySettings` дополнительно действует резервный порядок: если в секции `"ClayApp"` строка подключения не указана, используется соответствующая запись из `ConnectionStrings`. Полное описание приоритетов — в разделе «Configuration — connection string priority» корневого `AGENTS.md` решения.
+Согласно `AGENTS.md`, приоритет источника строки подключения — **`web.config`**: строка читается из `web.config` через `ConfigurationManager.ConnectionStrings`. Имя строки определяется ключом `ClayGrid:Dynamic:ConnectionStringName` (по умолчанию `"DefaultConnection"`). Полное описание приоритетов — в разделе «Configuration — connection string priority» корневого `AGENTS.md` решения.
 
 ## Разработка
 

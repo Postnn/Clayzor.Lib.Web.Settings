@@ -1,15 +1,15 @@
 > Глобальные правила и обзор решения — в корневом /AGENTS.md. Здесь — только специфика проекта Clayzor.Lib.Web.Settings.
 
 Сборка `Clayzor.Lib.Web.Settings` содержит классы настроек и конфигурации Clayzor:
-- `ClayAppSettings` — биндинг конфигурации (`BindClaySettings()`), приоритет connection string (web.config → appsettings.json)
+- `ClayAppSettings` — биндинг конфигурации (`BindClaySettings()`): явное чтение ключей `AppName`, `ClayGrid:DefaultPageSize`, `Sql:CommandTimeout`, `ClayApp:LdapPath`; connection string через `ConfigurationManager`
 - Не зависит от DALC и БД — только конфигурационные биндинги
 - Зависимость `System.Configuration.ConfigurationManager` — для чтения `<connectionStrings>` и `<appSettings>` из `web.config`
 
 ## Connection string
 
 `ConnectionString` заполняется по цепочке:
-1. `configuration.GetSection("ClayApp").Bind(settings)` — если ключ `ClayApp:ConnectionString` задан
-2. Иначе: имя читается из `configuration["ClayGrid:Dynamic:ConnectionStringName"]` (по умолчанию `"DefaultConnection"`)
+1. `settings.ApplicationName` = `configuration["AppName"] ?? "Clayzor"`; `DefaultPageSize` = `configuration["ClayGrid:DefaultPageSize"]`; `CommandTimeout` = `configuration["Sql:CommandTimeout"]`; `LdapPath` = `configuration["ClayApp:LdapPath"]`
+2. Имя строки подключения читается из `configuration["ClayGrid:Dynamic:ConnectionStringName"]` (по умолчанию `"DefaultConnection"`)
 3. Строка подключения с этим именем читается из `web.config` через `ConfigurationManager.OpenMappedExeConfiguration().ConnectionStrings`
 
 ## AppSettings из web.config

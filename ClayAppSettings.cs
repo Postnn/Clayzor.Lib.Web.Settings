@@ -66,7 +66,11 @@ public static class WebConfigExtensions
     public static ClayAppSettings BindClaySettings(this IConfiguration configuration)
     {
         var settings = new ClayAppSettings();
-        configuration.GetSection("ClayApp").Bind(settings);
+
+        settings.ApplicationName = ReadAppSettingFromWebConfig("AppName") ?? "Clayzor";
+        settings.DefaultPageSize = int.TryParse(ReadAppSettingFromWebConfig("ClayGrid:DefaultPageSize"), out var ps) ? ps : 50;
+        settings.CommandTimeout = int.TryParse(ReadAppSettingFromWebConfig("Sql:CommandTimeout"), out var ct) ? ct : 30;
+        settings.LdapPath = ReadAppSettingFromWebConfig("ClayApp:LdapPath");
 
         if (string.IsNullOrEmpty(settings.ConnectionString))
         {
