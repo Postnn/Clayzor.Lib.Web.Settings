@@ -92,7 +92,7 @@ public static class WebConfigExtensions
     /// </summary>
     /// <param name="name">Имя строки подключения (атрибут name в секции connectionStrings).</param>
     /// <returns>Строка подключения или null, если файл отсутствует или имя не найдено.</returns>
-    private static string? ReadConnectionStringFromWebConfig(string name)
+    public static string? ReadConnectionStringFromWebConfig(string name)
     {
         var webConfigPath = Path.Combine(Directory.GetCurrentDirectory(), "web.config");
         if (!File.Exists(webConfigPath))
