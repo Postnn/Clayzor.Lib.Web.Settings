@@ -109,7 +109,7 @@ public static class WebConfigExtensions
     /// </summary>
     /// <param name="key">Ключ (атрибут key в секции appSettings).</param>
     /// <returns>Значение или null, если файл отсутствует или ключ не найден.</returns>
-    private static string? ReadAppSettingFromWebConfig(string key)
+    public static string? ReadAppSettingFromWebConfig(string key)
     {
         var webConfigPath = Path.Combine(Directory.GetCurrentDirectory(), "web.config");
         if (!File.Exists(webConfigPath))
